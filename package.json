@@ -1,0 +1,56 @@
+{
+	"name": "rabbitmq-throttle",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"prod": "node build/main.js",
+		"dev": "concurrently --kill-others --names \"BUILD,RUN\" -c \"bgBlue.bold,bgMagenta.bold\" \"tsc -w\" \"nodemon\"",
+		"build": "./node_modules/typescript/bin/tsc",
+		"build:watch": "./node_modules/typescript/bin/tsc -w -p tsconfig.release.json",
+		"lint": "./node_modules/tslint/bin/tslint -t stylish --project \"tsconfig.json\" ",
+		"test": "TS_NODE_FILES=true ./node_modules/.bin/nyc ./node_modules/.bin/mocha --config .mocharc.unit.js",
+		"test:grep": "TS_NODE_FILES=true ./node_modules/.bin/mocha --config .mocharc.unit.js -g ",
+		"coverage": "./node_modules/.bin/nyc report",
+		"clean": "./node_modules/rimraf/bin.js build"
+	},
+	"devDependencies": {
+		"@istanbuljs/nyc-config-typescript": "^1.0.1",
+		"@types/amqplib": "^0.8.2",
+		"@types/chai": "^4.2.18",
+		"@types/mocha": "^8.2.2",
+		"@types/node": "^12.19.12",
+		"@types/sinon": "^10.0.2",
+		"@types/supertest": "^2.0.11",
+		"@typescript-eslint/eslint-plugin": "^2.34.0",
+		"@typescript-eslint/parser": "^3.9.1",
+		"@typescript-eslint/typescript-estree": "^4.14.2",
+		"chai": "^4.3.4",
+		"chai-shallow-deep-equal": "^1.4.6",
+		"concurrently": "^5.3.0",
+		"eslint": "^6.8.0",
+		"eslint-config-prettier": "^6.11.0",
+		"eslint-plugin-import": "^2.20.1",
+		"eslint-plugin-prettier": "^3.3.1",
+		"mocha": "^8.4.0",
+		"nodemon": "^1.19.4",
+		"nyc": "^15.1.0",
+		"prettier": "^2.0.5",
+		"rimraf": "^2.6.3",
+		"sinon": "^11.1.1",
+		"supertest": "^6.1.3",
+		"ts-node": "^10.0.0",
+		"ts-sinon": "^2.0.1",
+		"tslint": "^5.16.0",
+		"typescript": "^4.1.3"
+	},
+	"keywords": [
+		"rabbitmq",
+		"throttle"
+	],
+	"author": "bpicori",
+	"license": "ISC",
+	"dependencies": {
+		"amqplib": "^0.8.0"
+	}
+}
