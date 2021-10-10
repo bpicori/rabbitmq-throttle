@@ -1,9 +1,4 @@
-import axios, {
-	AxiosError,
-	AxiosInstance,
-	AxiosRequestConfig,
-	AxiosResponse,
-} from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 export interface RabbitQueue {
 	name: string;
