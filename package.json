@@ -9,8 +9,8 @@
 		"build": "./node_modules/typescript/bin/tsc",
 		"build:watch": "./node_modules/typescript/bin/tsc -w -p tsconfig.release.json",
 		"lint": "./node_modules/tslint/bin/tslint -t stylish --project \"tsconfig.json\" ",
-		"test": "TS_NODE_FILES=true ./node_modules/.bin/nyc ./node_modules/.bin/mocha --config .mocharc.unit.js",
-		"test:grep": "TS_NODE_FILES=true ./node_modules/.bin/mocha --config .mocharc.unit.js -g ",
+		"test": "TS_NODE_FILES=true ./node_modules/.bin/mocha --config .mocharc.e2e.js",
+		"test:grep": "TS_NODE_FILES=true ./node_modules/.bin/mocha --config .mocharc.e2e.js -g ",
 		"coverage": "./node_modules/.bin/nyc report",
 		"clean": "./node_modules/rimraf/bin.js build"
 	},

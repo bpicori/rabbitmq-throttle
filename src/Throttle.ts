@@ -15,8 +15,10 @@ type ConsumeHandler = (payload: {
 
 interface Options {
 	pattern: string; // the pattern name to create queues. e.x requests.user_id
-	rabbitUrl: string;
-	rabbitHttpUrl: string;
+	rabbit: {
+		amqp: string;
+		http: string;
+	};
 	users: () => Users;
 	consumeHandler: ConsumeHandler;
 	exchangeName?: string;
@@ -40,15 +42,27 @@ export class Throttle {
 
 	public constructor(private options: Options) {
 		this.consumers = {};
-		this.rabbitApi = new RabbitApi(options.rabbitHttpUrl);
+		this.rabbitApi = new RabbitApi(options.rabbit.http);
 		this.connection = null;
 		this.internalChannel = null;
 		this.clientChannel = null;
 	}
 
+	private get addQueueName(): string {
+		return `${this.options.pattern}.add`;
+	}
+
+	private get removeQueueName(): string {
+		return `${this.options.pattern}.remove`;
+	}
+
+	private get syncQueueName(): string {
+		return `${this.options.pattern}.sync`;
+	}
+
 	public async init() {
 		this.connection =
-			this.options.connection || (await connect(this.options.rabbitUrl));
+			this.options.connection || (await connect(this.options.rabbit.amqp));
 
 		this.exchangeName = this.options.exchangeName || EXCHANGE.name;
 		this.exchangeFanoutName =
@@ -63,21 +77,39 @@ export class Throttle {
 			'fanout'
 		);
 
-		await this.internalChannel.assertQueue('add', {});
-		await this.internalChannel.assertQueue('remove', {});
-		await this.internalChannel.assertQueue('sync', {});
+		await this.internalChannel.assertQueue(this.addQueueName, {});
+		await this.internalChannel.assertQueue(this.removeQueueName, {});
+		await this.internalChannel.assertQueue(this.syncQueueName, {});
 
-		await this.internalChannel.bindQueue('add', this.exchangeName, 'add');
-		await this.internalChannel.bindQueue('sync', this.exchangeName, 'sync');
 		await this.internalChannel.bindQueue(
-			'remove',
+			this.addQueueName,
+			this.exchangeName,
+			this.addQueueName
+		);
+		await this.internalChannel.bindQueue(
+			this.syncQueueName,
+			this.exchangeName,
+			this.syncQueueName
+		);
+		await this.internalChannel.bindQueue(
+			this.removeQueueName,
 			this.exchangeFanoutName,
-			'remove'
+			this.removeQueueName
 		);
 
-		await this.internalChannel.consume('add', this.addHandler);
-		await this.internalChannel.consume('remove', this.removeHandler);
-		await this.internalChannel.consume('sync', this.syncHandler);
+		await this.internalChannel.consume(
+			this.addQueueName,
+			this.addHandler.bind(this)
+		);
+		await this.internalChannel.consume(
+			this.removeQueueName,
+			this.removeHandler.bind(this)
+		);
+
+		await this.internalChannel.consume(
+			this.syncQueueName,
+			this.syncHandler.bind(this)
+		);
 	}
 
 	private async syncHandler(msg: ConsumeMessage | null) {
@@ -147,7 +179,12 @@ export class Throttle {
 			.filter((c) => {
 				return (
 					new RegExp(`^${this.options.pattern}`).test(c.name) &&
-					!usersQueues[c.name]
+					!usersQueues[c.name] &&
+					![
+						this.addQueueName,
+						this.removeQueueName,
+						this.syncQueueName,
+					].includes(c.name)
 				);
 			})
 			.map((c) => {
@@ -157,7 +194,7 @@ export class Throttle {
 		if (queuesForRemove.length) {
 			for (const { name, consumers } of queuesForRemove) {
 				if (consumers > 0) {
-					this.removeQueue(name, mapConsumers[name].tags);
+					this.removeQueue(name, mapConsumers[name]?.tags);
 				} else {
 					await this.clientChannel?.deleteQueue(name);
 					console.log(`Deleted Queue: [${name}]`);
@@ -224,7 +261,7 @@ export class Throttle {
 	private addQueue(queueName: string) {
 		this.internalChannel?.publish(
 			this.exchangeName,
-			'add',
+			this.addQueueName,
 			Buffer.from(queueName)
 		);
 	}
@@ -232,7 +269,7 @@ export class Throttle {
 	private removeQueue(queueName: string, tags: string[]) {
 		this.internalChannel?.publish(
 			this.exchangeFanoutName,
-			'remove',
+			this.removeQueueName,
 			Buffer.from(
 				JSON.stringify({
 					queueName: queueName,

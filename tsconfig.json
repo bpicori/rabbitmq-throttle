@@ -16,9 +16,9 @@
 		"outDir": "./build"
 	},
 	"include": [
-		"src/**/*"
+		"src/**/*", "tests"
 	],
 	"exclude": [
-		"src/**/flycheck*"
+		"tests"
 	]
 }

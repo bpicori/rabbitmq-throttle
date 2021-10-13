@@ -3,8 +3,10 @@ import * as fs from 'fs';
 
 async function main(): Promise<void> {
 	const throttle = new Throttle({
-		rabbitUrl: 'amqp://guest:guest@localhost',
-		rabbitHttpUrl: 'http://guest:guest@localhost:15672',
+		rabbit: {
+			amqp: 'amqp://guest:guest@localhost/test',
+			http: 'http://guest:guest@localhost:15672/test',
+		},
 		pattern: 'request',
 		users: () => {
 			let raw = fs.readFileSync(__dirname + '/../users.json');
