@@ -1,6 +1,5 @@
 import { RabbitApi } from '../src/RabbitApi';
 import { Throttle } from '../src/Throttle';
-import fs from 'fs';
 import { Channel, connect } from 'amqplib';
 
 export const PATTERN = 'request-test';

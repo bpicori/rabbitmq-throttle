@@ -2,19 +2,19 @@ import { Channel, connect, Connection, ConsumeMessage, Replies } from 'amqplib';
 import { RabbitApi } from './RabbitApi';
 import Consume = Replies.Consume;
 
-type UserKey = string;
-type NumberOfConsumers = number;
+export type UserKey = string;
+export type NumberOfConsumers = number;
 
-type Users = Record<UserKey, NumberOfConsumers>;
+export type Users = Record<UserKey, NumberOfConsumers>;
 
-type ConsumeHandler = (payload: {
+export type ConsumeHandler = (payload: {
 	message: ConsumeMessage | null;
 	connection: Connection | null;
 	channel: Channel | null;
 }) => Promise<void>;
 
-interface Options {
-	pattern: string; // the pattern name to create queues. e.x requests.user_id
+export interface Options {
+	pattern: string;
 	rabbit: {
 		amqp: string;
 		http: string;
@@ -26,7 +26,7 @@ interface Options {
 	connection?: Connection;
 }
 
-enum EXCHANGE {
+export enum EXCHANGE {
 	name = 'throttle',
 	fanout = 'throttle.remove',
 }
