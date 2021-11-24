@@ -1,7 +1,7 @@
 # RabbitMQ Throttle
 ### Motivation
-RabbitMQ throttle is a utility package to handle parallelism in distributed systems, creating and deleting queues/consumers dynamically up to your configuration.
-Imagine your application is sending requests to Google Analytics API and you know that the limits are 1 request a second for every user.  Rabbitmq throttle creates one queue for every user and using rabbit RPC respects the API limits.
+Rabbitmq throttle is a utility package to handle parallelism in distributed systems, creating and deleting queues/consumers dynamically up to your configuration.
+Imagine your application sending requests to Google Analytics API and you know the limits are 1 request per second for every user. Rabbitmq throttle creates one queue for every user and using rabbit RPC respects the API limits.
 One other case is if you want to throttle database requests, creating write/read consumers based on your users.
 ### Usage
 
@@ -57,7 +57,7 @@ interface Options {
 }
 ```
 #### Publish Sync Job
-Sync job can be triggered inside the service using sync cron job options but I recommend triggering from outside (crond service, K8 cronjob).
+Sync job can be triggered inside the service using sync cron job options, but I recommend triggering from outside (crond service, K8 cronjob).
 
 K8 CronJob example:
 ```yaml
