@@ -3,7 +3,7 @@
 		"target": "es2018",
 		"module": "commonjs",
 		"moduleResolution": "node",
-		"sourceMap": true,
+		"sourceMap": false,
 		"removeComments": false,
 		"esModuleInterop": true,
 		"experimentalDecorators": true,
@@ -13,7 +13,9 @@
 		"strictPropertyInitialization": true,
 		"alwaysStrict": true,
 		"rootDir": "./src",
-		"outDir": "./build"
+		"outDir": "./lib",
+		"declaration": true,
+		"inlineSourceMap": true,
 	},
 	"include": [
 		"src/**/*", "tests"

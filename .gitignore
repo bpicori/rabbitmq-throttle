@@ -6,3 +6,4 @@ coverage/
 build/
 .log/
 test.log
+lib/

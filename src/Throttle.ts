@@ -64,7 +64,7 @@ export class Throttle {
 		return `${this.options.pattern}.sync`;
 	}
 
-	public async init() {
+	public async init(): Promise<void> {
 		this.connection =
 			this.options.connection || (await connect(this.options.rabbit.amqp));
 

@@ -6,8 +6,7 @@
 	"scripts": {
 		"prod": "node build/main.js",
 		"dev": "concurrently --kill-others --names \"BUILD,RUN\" -c \"bgBlue.bold,bgMagenta.bold\" \"tsc -w\" \"nodemon\"",
-		"build": "./node_modules/typescript/bin/tsc",
-		"build:watch": "./node_modules/typescript/bin/tsc -w -p tsconfig.release.json",
+		"build": "tsc && cp package.json lib/package.json",
 		"lint": "./node_modules/tslint/bin/tslint -t stylish --project \"tsconfig.json\" ",
 		"test": "TS_NODE_FILES=true ./node_modules/.bin/mocha --config .mocharc.e2e.js",
 		"test:grep": "TS_NODE_FILES=true ./node_modules/.bin/mocha --config .mocharc.e2e.js -g ",
