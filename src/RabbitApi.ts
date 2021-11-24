@@ -21,7 +21,7 @@ export class RabbitApi {
 	public constructor(private url: string) {
 		const u = new URL(url);
 		this.vhost =
-			u.pathname === '/' ? '/' : u.pathname.slice(1, u.pathname.length);
+			u.pathname === '/' ? '' : u.pathname.slice(1, u.pathname.length);
 		this.request = axios.create({
 			baseURL: u.origin,
 			auth: { username: u.username, password: u.password },

@@ -18,7 +18,6 @@ export async function assertQueue({
 			const queue = await VHOST_API.getQueue(name);
 			assert.equal(queue.consumers, consumers);
 		} catch (e) {
-			console.log('retrying...');
 			await new Promise((r) => setTimeout(r, 5000));
 			return assertQueue({ name, consumers, retry: (retry += 1) });
 		}

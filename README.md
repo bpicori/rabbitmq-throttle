@@ -28,7 +28,7 @@ const throttle = new Throttle({
 		return users;
 	},
 	consumeHandler: async ({ connection, channel, message }) => {
-
+		console.log(message.toString());
 		await channel?.ack(message);
 	},
 });
@@ -41,7 +41,6 @@ RabbitMQ throttle creates 3 queues:
 
 #### Properties
 ```typescript
-
 interface Options {
 	pattern: string; // add prefix when creating all queues
 	rabbit: {
@@ -53,7 +52,53 @@ interface Options {
 	exchangeName?: string; // optional name of the exchange, if not given will creates a default
 	exchangeFanoutName?: string;
 	connection?: Connection; // give an already initialize rabbit connection, if not it's creates a new one
+	syncCronJob?: {
+		start: boolean; // start the cron sync job
+		interval: number; // sync interval in seconds
+	};
 }
+```
+#### Publish Sync Job
+Sync job can be triggered inside the service using sync cron job options but I recommend trigger from outside (crond service ,K8 cronjob).
+
+K8 CronJob example:
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: sync-cron-job
+spec:
+  schedule: "*/3 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: sync-cron-job
+              image: 'activatedgeek/rabbitmqadmin:0.1'
+              env:
+                - name: RABBIT_HOST
+                  value: rabbitmq
+                - name: RABBIT_PORT
+                  value: '15672'
+                - name: RABBIT_USER
+                  value: guest
+                - name: RABBIT_PASSWORD
+                  value: guest
+                - name: RABBIT_VHOST
+                  value: '/'
+              command:
+                - /bin/sh
+                - '-c'
+              args:
+                - >-
+                  publish exchange=throttle routing_key=request.sync payload=" "
+              imagePullPolicy: IfNotPresent
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 30
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+
 ```
 
 

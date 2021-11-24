@@ -24,6 +24,10 @@ export interface Options {
 	exchangeName?: string;
 	exchangeFanoutName?: string;
 	connection?: Connection;
+	syncCronJob?: {
+		start: boolean; // start the cron sync job
+		interval: number; // sync interval in seconds
+	};
 }
 
 export enum EXCHANGE {
@@ -110,96 +114,112 @@ export class Throttle {
 			this.syncQueueName,
 			this.syncHandler.bind(this)
 		);
+		if (this.options.syncCronJob?.start) {
+			setInterval(
+				this.publishSyncMessage.bind(this),
+				this.options.syncCronJob.interval * 1000
+			);
+		}
+	}
+
+	private async publishSyncMessage() {
+		this.internalChannel?.publish(
+			this.exchangeName,
+			this.syncQueueName,
+			Buffer.from('')
+		);
 	}
 
 	private async syncHandler(msg: ConsumeMessage | null) {
 		if (!msg || !this.internalChannel) {
 			return;
 		}
+		try {
+			const consumers = await this.rabbitApi.getConsumers();
+			const allQueues = await this.rabbitApi.getQueues();
 
-		const consumers = await this.rabbitApi.getConsumers();
-		const allQueues = await this.rabbitApi.getQueues();
-
-		const mapConsumers = consumers.reduce<
-			Record<string, { nr: number; tags: string[] }>
-		>((acc, c) => {
-			if (acc[c.queue.name]) {
-				acc[c.queue.name].nr += 1;
-				acc[c.queue.name].tags.push(c.consumer_tag);
+			const mapConsumers = consumers.reduce<
+				Record<string, { nr: number; tags: string[] }>
+			>((acc, c) => {
+				if (acc[c.queue.name]) {
+					acc[c.queue.name].nr += 1;
+					acc[c.queue.name].tags.push(c.consumer_tag);
+					return acc;
+				}
+				acc[c.queue.name] = {
+					nr: 1,
+					tags: [c.consumer_tag],
+				};
 				return acc;
-			}
-			acc[c.queue.name] = {
-				nr: 1,
-				tags: [c.consumer_tag],
-			};
-			return acc;
-		}, {});
+			}, {});
 
-		const users = await this.options.users();
-		const usersQueues = Object.keys(users).reduce<Record<string, number>>(
-			(acc, e) => {
-				acc[`${this.options.pattern}.${e}`] = users[e];
-				return acc;
-			},
-			{}
-		);
+			const users = await this.options.users();
+			const usersQueues = Object.keys(users).reduce<Record<string, number>>(
+				(acc, e) => {
+					acc[`${this.options.pattern}.${e}`] = users[e];
+					return acc;
+				},
+				{}
+			);
 
-		for (const [userQueue, desiredNrOfConsumers] of Object.entries(
-			usersQueues
-		)) {
-			const exists = mapConsumers[userQueue];
-			if (!exists) {
-				for (let i = 0; i < desiredNrOfConsumers; i++) {
-					this.addQueue(userQueue);
+			for (const [userQueue, desiredNrOfConsumers] of Object.entries(
+				usersQueues
+			)) {
+				const exists = mapConsumers[userQueue];
+				if (!exists) {
+					for (let i = 0; i < desiredNrOfConsumers; i++) {
+						this.addQueue(userQueue);
+					}
+					continue;
 				}
-				continue;
-			}
-			const { nr: actualNumberOfConsumers, tags } = mapConsumers[userQueue];
-			if (desiredNrOfConsumers > actualNumberOfConsumers) {
-				for (
-					let i = 0;
-					i < desiredNrOfConsumers - actualNumberOfConsumers;
-					i++
-				) {
-					this.addQueue(userQueue);
+				const { nr: actualNumberOfConsumers, tags } = mapConsumers[userQueue];
+				if (desiredNrOfConsumers > actualNumberOfConsumers) {
+					for (
+						let i = 0;
+						i < desiredNrOfConsumers - actualNumberOfConsumers;
+						i++
+					) {
+						this.addQueue(userQueue);
+					}
+					continue;
 				}
-				continue;
-			}
-			if (desiredNrOfConsumers < actualNumberOfConsumers) {
-				const nrOfConsumersToRemove =
-					actualNumberOfConsumers - desiredNrOfConsumers;
-				const consumersToRemove = tags.slice(0, nrOfConsumersToRemove);
-				for (let i = 0; i < consumersToRemove.length; i++) {
-					this.removeQueue(userQueue, consumersToRemove);
+				if (desiredNrOfConsumers < actualNumberOfConsumers) {
+					const nrOfConsumersToRemove =
+						actualNumberOfConsumers - desiredNrOfConsumers;
+					const consumersToRemove = tags.slice(0, nrOfConsumersToRemove);
+					for (let i = 0; i < consumersToRemove.length; i++) {
+						this.removeQueue(userQueue, consumersToRemove);
+					}
 				}
 			}
-		}
 
-		const queuesForRemove = allQueues
-			.filter((c) => {
-				return (
-					new RegExp(`^${this.options.pattern}`).test(c.name) &&
-					!usersQueues[c.name] &&
-					![
-						this.addQueueName,
-						this.removeQueueName,
-						this.syncQueueName,
-					].includes(c.name)
-				);
-			})
-			.map((c) => {
-				return { name: c.name, consumers: c.consumers };
-			});
+			const queuesForRemove = allQueues
+				.filter((c) => {
+					return (
+						new RegExp(`^${this.options.pattern}`).test(c.name) &&
+						!usersQueues[c.name] &&
+						![
+							this.addQueueName,
+							this.removeQueueName,
+							this.syncQueueName,
+						].includes(c.name)
+					);
+				})
+				.map((c) => {
+					return { name: c.name, consumers: c.consumers };
+				});
 
-		if (queuesForRemove.length) {
-			for (const { name, consumers } of queuesForRemove) {
-				if (consumers > 0) {
-					this.removeQueue(name, mapConsumers[name]?.tags);
-				} else {
-					await this.clientChannel?.deleteQueue(name);
-					console.log(`Deleted Queue: [${name}]`);
+			if (queuesForRemove.length) {
+				for (const { name, consumers } of queuesForRemove) {
+					if (consumers > 0) {
+						this.removeQueue(name, mapConsumers[name]?.tags);
+					} else {
+						await this.clientChannel?.deleteQueue(name);
+					}
 				}
 			}
+		} catch (err) {
+			console.log(`[ERROR] in sync handler ${err.message}`);
 		}
 
 		await this.internalChannel.ack(msg);
@@ -220,7 +240,6 @@ export class Throttle {
 			for (const tag of tagsForRemove) {
 				if (tags.includes(tag)) {
 					await this.clientChannel?.cancel(tag);
-					console.log(`Queue:[${queueName}] removing consumer:[${tag}]`);
 				}
 			}
 		}
@@ -239,7 +258,6 @@ export class Throttle {
 		await this.clientChannel.assertQueue(queueName, {
 			maxPriority: 10,
 		});
-		// await this.clientChannel.bindQueue(queueName, '', queueName);
 		const consume: Consume = await this.clientChannel.consume(
 			queueName,
 			async (message) =>
@@ -253,9 +271,6 @@ export class Throttle {
 		tags.push(consume.consumerTag);
 		this.consumers[queueName] = tags;
 		await this.internalChannel.ack(msg);
-		console.log(
-			`Queue:[${queueName}] adding consumer:[${consume.consumerTag}]`
-		);
 	}
 
 	private addQueue(queueName: string) {
