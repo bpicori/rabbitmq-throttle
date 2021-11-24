@@ -1,5 +1,4 @@
 import { Throttle } from '../src/Throttle';
-import * as fs from 'fs';
 
 async function main(): Promise<void> {
 	const throttle = new Throttle({
@@ -9,9 +8,6 @@ async function main(): Promise<void> {
 		},
 		pattern: 'request',
 		users: () => {
-			// let raw = fs.readFileSync(__dirname + '/../users.json');
-			// let users = JSON.parse(raw.toString());
-			// return users;
 			return {
 				'1': 1,
 				'2': 1,
