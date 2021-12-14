@@ -1,4 +1,4 @@
-import { Throttle } from '../src/Throttle';
+import { Throttle } from '../src';
 
 async function main(): Promise<void> {
 	const throttle = new Throttle({
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
 			await channel?.ack(message);
 		},
 		syncCronJob: {
-			start: true,
+			start: false,
 			interval: 5,
 		},
 	});

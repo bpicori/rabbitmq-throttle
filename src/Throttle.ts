@@ -1,6 +1,7 @@
 import { Channel, connect, Connection, ConsumeMessage, Replies } from 'amqplib';
 import { RabbitApi } from './RabbitApi';
 import Consume = Replies.Consume;
+import { v4 as uuidv4 } from 'uuid';
 
 export type UserKey = string;
 export type NumberOfConsumers = number;
@@ -19,7 +20,7 @@ export interface Options {
 		amqp: string;
 		http: string;
 	};
-	users: () => Users;
+	users: () => Users | Promise<Users>;
 	consumeHandler: ConsumeHandler;
 	exchangeName?: string;
 	exchangeFanoutName?: string;
@@ -43,6 +44,7 @@ export class Throttle {
 	private clientChannel: Channel | null;
 	private exchangeName: string = EXCHANGE.name;
 	private exchangeFanoutName: string = EXCHANGE.fanout;
+	private removeQueueNameId: string;
 
 	public constructor(private options: Options) {
 		this.consumers = {};
@@ -50,6 +52,7 @@ export class Throttle {
 		this.connection = null;
 		this.internalChannel = null;
 		this.clientChannel = null;
+		this.removeQueueNameId = uuidv4();
 	}
 
 	private get addQueueName(): string {
@@ -57,7 +60,7 @@ export class Throttle {
 	}
 
 	private get removeQueueName(): string {
-		return `${this.options.pattern}.remove`;
+		return `${this.options.pattern}.remove.${this.removeQueueNameId}`;
 	}
 
 	private get syncQueueName(): string {
@@ -82,7 +85,9 @@ export class Throttle {
 		);
 
 		await this.internalChannel.assertQueue(this.addQueueName, {});
-		await this.internalChannel.assertQueue(this.removeQueueName, {});
+		await this.internalChannel.assertQueue(this.removeQueueName, {
+			autoDelete: true,
+		});
 		await this.internalChannel.assertQueue(this.syncQueueName, {});
 
 		await this.internalChannel.bindQueue(

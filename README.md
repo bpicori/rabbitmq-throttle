@@ -1,6 +1,6 @@
 # RabbitMQ Throttle
 ### Motivation
-Rabbitmq throttle is a utility package to handle parallelism in distributed systems, creating and deleting queues/consumers dynamically up to your configuration.
+Rabbitmq throttle is an utility package to handle parallelism in distributed systems, creating and deleting queues/consumers dynamically up to your configuration.
 Imagine your application sending requests to Google Analytics API and you know the limits are 1 request per second for every user. Rabbitmq throttle creates one queue for every user and using rabbit RPC respects the API limits.
 One other case is if you want to throttle database requests, creating write/read consumers based on your users.
 ### Usage
