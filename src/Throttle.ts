@@ -273,10 +273,7 @@ export class Throttle {
 					message,
 					channel: this.clientChannel,
 					connection: this.connection,
-				}),
-			{
-				noAck: true,
-			}
+				})
 		);
 		const tags = this.consumers[queueName] || [];
 		tags.push(consume.consumerTag);
