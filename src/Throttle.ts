@@ -29,6 +29,7 @@ export interface Options {
 		start: boolean; // start the cron sync job
 		interval: number; // sync interval in seconds
 	};
+	prefetch?: number;
 }
 
 export enum EXCHANGE {
@@ -45,7 +46,7 @@ export class Throttle {
 	private exchangeName: string = EXCHANGE.name;
 	private exchangeFanoutName: string = EXCHANGE.fanout;
 	private removeQueueNameId: string;
-
+	private prefetch: number;
 	public constructor(private options: Options) {
 		this.consumers = {};
 		this.rabbitApi = new RabbitApi(options.rabbit.http);
@@ -53,6 +54,7 @@ export class Throttle {
 		this.internalChannel = null;
 		this.clientChannel = null;
 		this.removeQueueNameId = uuidv4();
+		this.prefetch = options.prefetch ?? 1;
 	}
 
 	private get addQueueName(): string {
@@ -77,6 +79,7 @@ export class Throttle {
 
 		this.internalChannel = await this.connection.createChannel();
 		this.clientChannel = await this.connection.createChannel();
+		this.clientChannel.prefetch(this.prefetch);
 
 		await this.internalChannel.assertExchange(this.exchangeName, 'direct');
 		await this.internalChannel.assertExchange(
